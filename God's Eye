@@ -1,1 +1,3 @@
-
+The Idea: Use a distributed network of cameras (or simulated feeds) that feeds into a Real-Time Data Pipeline.
+​The "Cool" Factor: Use an LLM to "narrate" security threats. Instead of a "Motion Detected" alert, the system sends: "Person of interest identified at Gate 4. They are carrying an unauthorized equipment bag and heading toward the server room. Correlating with badge logs: Access was revoked 2 hours ago."
+​Tech Stack: OpenCV/YOLOv11 for vision, Apache Kafka for streaming, and a RAG (Retrieval-Augmented Generation) pipeline that pulls from employee/visitor databases to provide "context" to the AI.
