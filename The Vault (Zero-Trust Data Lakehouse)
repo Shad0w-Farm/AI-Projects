@@ -1,0 +1,3 @@
+The Idea: Build a Data Lakehouse (Medallion Architecture) where every single piece of data is encrypted at the cell level using Attribute-Based Encryption (ABE).
+​The "Cool" Factor: The LLM can only "see" the data if it provides a valid User-Session-Token. The data is decrypted on-the-fly only as it enters the LLM's context window, ensuring that even if the database is leaked, the data is useless.
+​Tech Stack: Databricks/Delta Lake, Apache Xorm for encryption, and OAuth2.0 for identity-linked retrieval.
