@@ -1,0 +1,3 @@
+The Idea: A tool that automatically generates "Context Poisoning" attacks. It takes a legitimate set of documents and subtly injects malicious payloads that are invisible to humans but high-priority for AI attention mechanisms.
+​The "Cool" Factor: Use Adversarial Perturbations. It modifies the text so slightly that the vector embedding shifts just enough to make the AI "prefer" the malicious document over the safe one during retrieval.
+​Tech Stack: Python, LangChain, and ChromaDB/Pinecone for vector manipulation.
