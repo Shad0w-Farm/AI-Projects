@@ -1,0 +1,3 @@
+The Idea: An automated pipeline that crawls your entire Data Lake (S3/GCS) and uses LLMs to identify "Semantic PII".
+​The "Cool" Factor: Standard tools look for credit card numbers (Regex). Your project looks for contextual secrets—like a developer mentioning a production API key in a Slack log or a doctor’s note that identifies a patient via description.
+​Tech Stack: Apache Spark for massive data processing, Presidio for PII scrubbing, and a Vector DB to store "hashes" of leaked data to prevent re-ingestion.
