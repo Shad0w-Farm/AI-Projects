@@ -1,0 +1,3 @@
+The Idea: An AI agent that "lives" in your GitHub repo. It doesn't just find bugs; it clones the repo, sets up a local environment, attempts to exploit the bug, and then writes a "Proof of Concept" (PoC) and a fix.
+​The "Cool" Factor: It uses Autonomous Context Retrieval. It reads your documentation, previous PRs, and Jira tickets to understand the business logic of your app before trying to hack it.
+​Tech Stack: AutoGPT or CrewAI, GitHub API, and Docker (for safe execution of exploit code).
