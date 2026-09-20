@@ -1,0 +1,30 @@
+We will be creating a Red Teaming as a Code Project here. 
+The Purple framework that we will be implementing is Meta's' Purple Llama - an Open-Source suite designed specifically for AI Security, encompassing both offensive (red team) and defensive (blue team) evaluations. It includes tools like CyberSecEval for quantifying LLM Security risks and Code Shield for filtering insecure code generation.
+Combinng this with #OpenClaw, #OpenBot, #LiteLLM and #vLLM 
+gives me a formidable, cutting-edge stack that perfectly supports both of my tracks for Red teaming and Educational Games.
+
+Brainstorming:
+1. Red Teaming as a Code:
+* The Workflow: We will build an Automated GtOps pipline where AI Agents continuously attack and evaluate an environment.
+* The Stack in Action: An OpenClaw Agent acts as the autonomous attacker, generating payloads and exploiting vulnerabilities. It routes its API calls through liteLLM, which acts as our security gateway and audit log. The attacks are executed inside an OpenBot sandboxed container, preventing the red-team Agent from breaking out into our actual host machine. Finally, Purple Llama evaluates the attack data to generate a Security posture report.
+
+2. Educational Interactive Games:
+* The Workflow: Conversational, interactive tutors that can safely run code or browse the web alongside the student.
+* The Stack in Action: OpenClaw interfaces with my users via messaging platforms like Discord or WhatsApp). When a student needs to test Python code or View a Live Web interaction, OpenBot provisions a highly secure, ephemeral workspace for the Agent to demonstrate the lesson.
+
+Architecture (Initial):
+1. Local Control Plane (WSL2 +k3s): Install K3s inside WSL2. I will deploy my core MicroServices here: OpenClaw, OpenBot and LiteLLM.
+2. Local Inference (vLLM via WSL2): I will run smaller, highly quantized models (like Llama-3-8B-Instruct AWQ) locally on my laptop's' GPU using vLLM for lightweight routing and Agent Logic.
+3. Cloud Bursting (LiteLLM Routing): For heavy lifting (e.g. Generating complex code or running intensive Purple Llama evals), i will configure LiteLLM to route specific requests out to low-cost serverless GPU providers (like Hugging Face Inference Endpoints or RunPods).
+
+Cost Breakdown:
+If i try to host entire Kubernetes cluster in the cloud with dedicated GPU nodes, i will tend to be spending $300 to $600 per month, (thats huge), hence let me try to do a hybrid model that could slash the cost.
+* K8s cluster & Gateway (LiteLLM, OpenBot, OpenClaw) on Local WSL2 (k3s) on my laptop - Costs $0
+* Lightweight AI Inference (Routing, basic chat) on Local WSL2 (vLLM) using my laptop's' GPU - Costs me $0
+* Heavy AI Inference (Red Teaming models, Purple Llama) on a Serverless GPU (RunPod or Together AI) routed via local LLM. Now this will cost me $50 for my Per hour of Compute / tokens used.
+
+Below are the Requirements:
+1. Hardware & OS Baseline:
+To run multiple AI Agents and a Kubernetes cluster siultaneiusly, my host machine requires specific tuning.
+* Base OS: Windows 11 with Windows Subsystem for Linux 2 (WSL2) running on Ubuntu 24.04 distribution.
+* RAM Allocation: 
