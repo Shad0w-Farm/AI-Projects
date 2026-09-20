@@ -51,4 +51,8 @@ This is where my both my concepts - Educational Games and Red Teaming - actually
 * OpenBot (The Secure Sandbox): OpenBot provisions isolated workspaces, file systems and browsers for AI Agents.
   * Critical Requirements: Because i am executing malicious red-team payloads and running untrusted Python Code from students, OpenBot's' containers must be isolated using gVisor (runsc). This provides a secure sandbox that prevents Agent breakouts into my host k3s cluster.
 
+5. Security & Evaluation (Purple Llama):
+Purple Llama is a framework that will act as the Judge and filter for our stack.
+* Llama Guard: Placed in front of the educational interactive games via LiteLLM routing. It acts as a input/output filter to ensure students do not prompt-inject the tutor or generate unsage contents.
+* CyberSecEval: Integrated into the OpenClaw Red Teaming pipeline. After OpenClaw generates and executes a payload against a target environment (inside the OpenBot sandbox), CyberSecEval quantiies the exploit's' success and generates my Red Teaming as Code posture Report.
 
