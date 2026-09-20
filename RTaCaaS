@@ -5,7 +5,7 @@ gives me a formidable, cutting-edge stack that perfectly supports both of my tra
 
 Brainstorming:
 1. Red Teaming as a Code:
-* The Workflow: We will build an Automated GtOps pipline where AI Agents continuously attack and evaluate an environment.
+* The Workflow: We will build an Automated GitOps pipline where AI Agents continuously attack and evaluate an environment.
 * The Stack in Action: An OpenClaw Agent acts as the autonomous attacker, generating payloads and exploiting vulnerabilities. It routes its API calls through liteLLM, which acts as our security gateway and audit log. The attacks are executed inside an OpenBot sandboxed container, preventing the red-team Agent from breaking out into our actual host machine. Finally, Purple Llama evaluates the attack data to generate a Security posture report.
 
 2. Educational Interactive Games:
@@ -27,4 +27,28 @@ Below are the Requirements:
 1. Hardware & OS Baseline:
 To run multiple AI Agents and a Kubernetes cluster siultaneiusly, my host machine requires specific tuning.
 * Base OS: Windows 11 with Windows Subsystem for Linux 2 (WSL2) running on Ubuntu 24.04 distribution.
-* RAM Allocation: 
+* RAM Allocation: I must create a .wslconfig file in my Windows User Directory to hard-cap WSL2 memory usage (E.g. 24 GB). Without this limit, the AI models and k8s overhead will consume all available memory and crash Windows.
+* GPU Constraints: My Laptop has VRAM. I cannot run uncompressed 8B models. I will require a 4-bit AWQ or GPTQ quantized models (which consume roughly 5.5 GB to 6 GB VRAM) to leave overhead for the OS.
+* Storage: A minimum of 200 GB of NVMe SSD space dedicated to the WSL2 virtual disk (.vhdx). AI model weights and container images consume space rapidly.
+
+2. Infrastructure & Orchestration: 
+I need a localized, lightweight control plane that can access the GPU.
+* Cluster Engine (k3s): A single-binary Kubernetes distribution designed for the edge environments. It consumes less than 512 MB of RAM, making it vastly superior to Minikube or Full K8s for local deployments.
+* GPU Passthrough Stack:
+  * The standard Windows Nvidia drivers automatically pass WDDM capabilities to WSL2.
+  * The Nvidia Container Toolkit must be installed inside the Ubuntu WSL2 instance.
+  * The Nvidia Device Plugin (k8s-device-plugin DaemonSet) must be depoloyed into k3s to allow my pods to request limits: [nvidia.com/gpu](https://nvidia.com/gpu): 1.
+
+3. The Inference & Routing Layer:
+This will be acting as the brain, separating local processing from heavy-duty cloud bursting.
+* vLLM (Local Inference Engine): Deployed as a K8s Deployment. It serves our quantized models (e.g. Meta-Llama-3-8B-Instruct-AWQ) locally.
+* Hugging Face Hub Integration: I must create a Kubernetes Secret containing my HF_TOKEN. This allows the vLLM pod to authenticate and pull gated models directly from Hugging Face into a Persistent Volume (PV). Mounting a PV to /.cache/huggingface ensures my cluster doesn't re-download a 5GB model every time the pod restarts.
+* LiteLLM (The Gateway): Deployed as a K8s Service. This is my traffic controller. Through a config.yaml ConfiMap, LiteLLM intercepts all API calls and routes lightweight chat/game tasks to my local vLLM pod, while routing heavy tasks (like Purple Llama red-team evaluations) to a serverless cloud provider.
+
+4. The Agent Execution Enironment:
+This is where my both my concepts - Educational Games and Red Teaming - actually Execute!!!! Yayyy!!!!
+* OpenClaw (The Automator): Deployed as a persistent daemon pod. OpenClaw connects to my GitHub account via a Fine-Grained PAT (stored as K8s Secret). For my CS idea, this Agent Monitors Repositories and Autonomously Triggers Red Teaming pipelines.
+* OpenBot (The Secure Sandbox): OpenBot provisions isolated workspaces, file systems and browsers for AI Agents.
+  * Critical Requirements: Because i am executing malicious red-team payloads and running untrusted Python Code from students, OpenBot's' containers must be isolated using gVisor (runsc). This provides a secure sandbox that prevents Agent breakouts into my host k3s cluster.
+
+
