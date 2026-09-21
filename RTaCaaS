@@ -73,3 +73,38 @@ Changes to be considered:
 * Scope it to a single throwaway target repo, fine-grained, minimum permissions, short expiry - never a PAT that can touch anything i care about. 
 * I have to consider a dedicated GitHub org for this project so the blast radius is contained by GitHub's own boundary, not just token scope.
 
+Verify these before i start to build 
+I want to flag these rather than assert them, because I can't confirm the tools from here — check each on its actual project page before committing architecture to it:
+* "OpenClaw" and "OpenBot" - confirm these are the real project names. I'm not certain these exist under those names; you may be thinking of specific tools (there are agent frameworks and sandboxing projects these could map to). 
+* Whatever the actual tools are, verify: does the sandbox actually support gVisor/runsc, and does the agent framework actually run as a Kubernetes daemon the way i have drawn it? 
+* The architecture leans hard on both behaviors. 
+* If a name is slightly off, better to find out now than after i have built around an assumed capability.
+* gVisor under WSL2 is the risk I'd test first, before anything else. 
+* gVisor (runsc) intercepts syscalls, and it has historically been finicky about nested virtualization and kernel features - WSL2 is itself a VM with a custom kernel. 
+* "gVisor runs cleanly inside WSL2 k3s with GPU passthrough" is an assumption my whole isolation story rests on. 
+* Spend the first day proving runsc starts a container under WSL2 at all. 
+* If it doesn't, my fallback (a dedicated VM per execution, or Kata Containers) changes the architecture, so i want to know on day one.
+* GPU + gVisor together is a known hard combination. 
+* gVisor's GPU support (nvproxy) is relatively recent and limited. 
+* If my red-team or eval payloads need GPU inside the sandbox, test that specific combination early - it may not work, in which case GPU workloads run in the (trusted) inference plane only and sandboxes stay CPU-only, which is actually a cleaner design anyway.
+
+Smaller improvements, ranked by value
+* Llama Guard belongs on both tracks, not just the games. 
+* I have placed it in front of the educational tutor (correct - students will prompt-inject it). 
+* But put it on the red-team track's outputs too, as the audit boundary: it's what lets you demonstrate the pipeline generated something genuinely dangerous vs. benign, which is half your posture report's credibility.
+* Persist the results, not just the models. 
+* I have got a PV for HF model cache (good). 
+* Add a PV - or better, a small Postgres - for CyberSecEval results and attack history. 
+* "Red teaming as code" implies trend over time: is our posture improving across runs? 
+* That needs stored history, and it's the thing that makes the output a report rather than a one-shot.
+* LiteLLM as "security gateway and audit log" - make the audit real. 
+* LiteLLM logs, but wire it to actually persist request/response logs somewhere durable and enable its guardrails hooks. 
+* The claim "LiteLLM is our audit log" is only true if i turn that on and ship it off-box; otherwise it's logs that die with the pod.
+* Define the target environment explicitly. 
+* The design says the agent attacks "an environment" but never says what. 
+* That's the most important undefined piece - a deliberately vulnerable app (OWASP Juice Shop, DVWA, or a purpose-built vulnerable API) deployed as a pod in the execution namespace. 
+* Name it and version it, because it's what makes results reproducible.
+* The two tracks are more separable than the doc treats them. 
+* Red-teaming (autonomous, offensive, GitOps-triggered) and educational games (interactive, defensive, chat-fronted) share a stack but have opposite trust postures. 
+* I will have to consider building them as two deployments on the shared platform rather than one intertwined system - it keeps a student session from ever sharing a namespace with an offensive payload, and lets me demo one without the other.
+
