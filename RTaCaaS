@@ -56,3 +56,20 @@ Purple Llama is a framework that will act as the Judge and filter for our stack.
 * Llama Guard: Placed in front of the educational interactive games via LiteLLM routing. It acts as a input/output filter to ensure students do not prompt-inject the tutor or generate unsage contents.
 * CyberSecEval: Integrated into the OpenClaw Red Teaming pipeline. After OpenClaw generates and executes a payload against a target environment (inside the OpenBot sandbox), CyberSecEval quantiies the exploit's' success and generates my Red Teaming as Code posture Report.
 
+Issues that i have identified:
+* I will be running offensive red-team payloads and untrusted student code on the same k3s cluster that hosts my control plane (OpenClaw, LiteLLM, the GitHub PAT, the HF token). 
+* gVisor on OpenBot is a good layer, but it's one layer, and i have explicitly stated the threat model myself - "executing malicious red-team payloads." 
+* The entire premise of the project is that things inside the sandbox are hostile. 
+* Defense-in-depth means the sandbox is not the only thing between a hostile payload and my GitHub PAT.
+
+Changes to be considered:
+* Separate the execution plane from the control plane. 
+* At minimum a dedicated k3s node (or a second lightweight VM) that runs only OpenBot sandboxes, with its own namespace, a locked-down NetworkPolicy (default-deny egress, allow-list only LiteLLM and the target), and no access to the secrets namespace. 
+* The control plane - OpenClaw, LiteLLM, secrets - lives elsewhere and the payload plane can't reach it laterally.
+* NetworkPolicies are not optional here, and k3s doesn't enforce them out of the box. k3s ships Flannel, which ignores NetworkPolicy. 
+* I need to install a CNI that enforces it (Calico, or Cilium) or my "isolation" is namespace-labelling with no teeth. 
+* This is the same class of lesson as DPv2 pod-egress i have hit before - the policy object existing isn't the same as the dataplane enforcing it.
+* The GitHub PAT is my crown jewel and it's one breakout away from the payload plane. 
+* Scope it to a single throwaway target repo, fine-grained, minimum permissions, short expiry - never a PAT that can touch anything i care about. 
+* I have to consider a dedicated GitHub org for this project so the blast radius is contained by GitHub's own boundary, not just token scope.
+
