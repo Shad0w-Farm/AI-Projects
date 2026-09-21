@@ -108,3 +108,67 @@ Smaller improvements, ranked by value
 * Red-teaming (autonomous, offensive, GitOps-triggered) and educational games (interactive, defensive, chat-fronted) share a stack but have opposite trust postures. 
 * I will have to consider building them as two deployments on the shared platform rather than one intertwined system - it keeps a student session from ever sharing a namespace with an offensive payload, and lets me demo one without the other.
 
+Architecure Diagram:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  WINDOWS 11 HOST                                                              │
+│  .wslconfig → hard-cap 24 GB RAM  ·  NVIDIA WDDM driver → WSL2 GPU           │
+│                                                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  WSL2 · Ubuntu 24.04 · 200 GB .vhdx                                     │ │
+│  │                                                                         │ │
+│  │  ┌─────────────────────────────────────────────────────────────────┐  │ │
+│  │  │  k3s   (CNI = Calico/Cilium — NetworkPolicy ENFORCED)            │  │ │
+│  │  │  NVIDIA Container Toolkit + k8s-device-plugin (DaemonSet)         │  │ │
+│  │  │                                                                   │  │ │
+│  │  │  ══════════ CONTROL PLANE (trusted) ══════════════════════════   │  │ │
+│  │  │  namespace: control                                              │  │ │
+│  │  │   ┌──────────────┐   ┌───────────────────────────────────────┐  │  │ │
+│  │  │   │  OpenClaw*    │   │  LiteLLM  (gateway + audit + guard)    │  │  │ │
+│  │  │   │  agent daemon │──▶│  config.yaml ConfigMap                 │  │  │ │
+│  │  │   │  GitHub PAT   │   │  ┌─ light/chat  ─────▶ local vLLM      │  │  │ │
+│  │  │   │  (Secret,     │   │  ├─ Llama Guard (in/out filter)        │  │  │ │
+│  │  │   │   min-scope)  │   │  └─ heavy/eval ───────▶ CLOUD BURST    │  │  │ │
+│  │  │   └──────┬───────┘   └──────┬────────────────────────┬────────┘  │  │ │
+│  │  │          │                  │                         │           │  │ │
+│  │  │          │            ┌─────▼──────────┐              │           │  │ │
+│  │  │          │            │  vLLM Deploy   │              │           │  │ │
+│  │  │          │            │  AWQ 8B model  │  GPU: 1      │           │  │ │
+│  │  │          │            │  PV: /hf-cache │  HF_TOKEN    │           │  │ │
+│  │  │          │            └────────────────┘  (Secret)   │           │  │ │
+│  │  │          │                                            │           │  │ │
+│  │  │  ═══ ▼ EXECUTION PLANE (UNTRUSTED — isolate) ═══      │           │  │ │
+│  │  │  namespace: execution                                │           │  │ │
+│  │  │  NetworkPolicy: default-deny egress;                 │           │  │ │
+│  │  │    allow →LiteLLM, →target only;  NO →control        │           │  │ │
+│  │  │   ┌──────────────────────────────────────────────┐  │           │  │ │
+│  │  │   │  OpenBot* — sandbox provisioner               │  │           │  │ │
+│  │  │   │  containers run under gVisor (runsc)          │  │           │  │ │
+│  │  │   │  ┌────────────────┐   ┌────────────────────┐  │  │           │  │ │
+│  │  │   │  │ RED-TEAM pod   │   │ STUDENT pod        │  │  │           │  │ │
+│  │  │   │  │ payload exec   │   │ ephemeral py/web   │  │  │           │  │ │
+│  │  │   │  └───────┬────────┘   └────────────────────┘  │  │           │  │ │
+│  │  │   │          │ attacks                            │  │           │  │ │
+│  │  │   │   ┌──────▼─────────┐                          │  │           │  │ │
+│  │  │   │   │ TARGET (vuln   │  ← define explicitly     │  │           │  │ │
+│  │  │   │   │ app: JuiceShop)│                          │  │           │  │ │
+│  │  │   │   └────────────────┘                          │  │           │  │ │
+│  │  │   └──────────────────────────────────────────────┘  │           │  │ │
+│  │  │                                                       │           │  │ │
+│  │  │  ═══ EVALUATION ═══                                   │           │  │ │
+│  │  │   ┌────────────────────────────────────┐             │           │  │ │
+│  │  │   │ Purple Llama · CyberSecEval         │             │           │  │ │
+│  │  │   │ scores attacks → posture report     │             │           │  │ │
+│  │  │   │ PV/Postgres: result history (trend) │             │           │  │ │
+│  │  │   └────────────────────────────────────┘             │           │  │ │
+│  │  └───────────────────────────────────────────────────────┼──────────┘  │ │
+│  └─────────────────────────────────────────────────────────┼─────────────┘ │
+└────────────────────────────────────────────────────────────┼───────────────┘
+                                                               │
+                          ┌────────────────────────────────────▼──────────┐
+                          │  CLOUD BURST (serverless GPU, pay-per-use)     │
+                          │  RunPod / Together AI / HF Endpoints           │
+                          │  heavy code-gen · Purple Llama evals           │
+                          └────────────────────────────────────────────────┘
+
+ GitOps trigger:  GitHub repo ──(webhook/poll)──▶ OpenClaw ──▶ red-team pipeline
+ * OpenClaw / OpenBot: verify real tool names + gVisor & daemon support before building
