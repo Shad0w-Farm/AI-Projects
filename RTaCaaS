@@ -171,4 +171,5 @@ Architecure Diagram:
                           └────────────────────────────────────────────────┘
 
  GitOps trigger:  GitHub repo ──(webhook/poll)──▶ OpenClaw ──▶ red-team pipeline
- * OpenClaw / OpenBot: verify real tool names + gVisor & daemon support before building
+ * OpenClaw / OpenBot: verify real tool names + gVisor & daemon support before building.
+
